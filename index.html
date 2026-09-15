@@ -96,7 +96,7 @@ li .del:hover{color:var(--danger)}
 </div>
 
 <details class="plan" id="plan">
-  <summary><span class="lb">これから払う予定</span><span class="v">€<span id="plan-total">0</span></span></summary>
+  <summary><span class="lb">これから払う予定（1人分）</span><span class="v">€<span id="plan-total">0</span></span></summary>
   <div class="free">現金で払う予定 €<b id="plan-cash">0</b> → 現金の残りから引くと <b id="plan-free">0</b></div>
   <ul id="plan-list"></ul>
   <div class="tip">払ったらチェック。金額をタップすると入力欄に入る。「目安」は変わりうる額</div>
@@ -214,17 +214,17 @@ li .del:hover{color:var(--danger)}
   // ---- 予定支出 ----
   const PKEY='italy2026-plan-done';
   const PLAN=[
-    {k:'conv',d:'9/20',n:'修道院 宿泊費（到着時払い）',a:220,m:'wise'},
-    {k:'convtax',d:'9/22',n:'修道院 市税',a:16,m:'cash'},
-    {k:'brun',d:'9/21',n:'Brunelleschi Pass ×2',a:60,m:'wise'},
-    {k:'roll',d:'9/22',n:'Rolling Venice ×2',a:12,m:'cash'},
-    {k:'vap',d:'9/22',n:'ヴァポレット72h ×2（Rolling価格）',a:54,m:'wise'},
-    {k:'vetax',d:'9/22',n:'ヴェネツィア 市税',a:24,m:'cash'},
-    {k:'gond',d:'9/23',n:'ゴンドラ',a:90,m:'cash'},
-    {k:'dinner',d:'9/23',n:'記念日ディナー',a:120,m:'wise',est:1},
-    {k:'cena',d:'9/25',n:'最後の晩餐 ×2（取れたら）',a:30,m:'wise'},
-    {k:'mitax',d:'9/25',n:'ミラノ 市税',a:19,m:'cash'},
-    {k:'food',d:'毎日',n:'食費の目安 €47×10日',a:470,m:'wise',est:1}
+    {k:'conv',d:'9/20',n:'修道院 宿泊費（到着時払い）',a:110,m:'wise'},
+    {k:'convtax',d:'9/22',n:'修道院 市税',a:8,m:'cash'},
+    {k:'brun',d:'9/21',n:'Brunelleschi Pass',a:30,m:'wise'},
+    {k:'roll',d:'9/22',n:'Rolling Venice',a:6,m:'cash'},
+    {k:'vap',d:'9/22',n:'ヴァポレット72h（Rolling価格）',a:27,m:'wise'},
+    {k:'vetax',d:'9/22',n:'ヴェネツィア 市税',a:12,m:'cash'},
+    {k:'gond',d:'9/23',n:'ゴンドラ（€90の半分）',a:45,m:'cash'},
+    {k:'dinner',d:'9/23',n:'記念日ディナー',a:60,m:'wise',est:1},
+    {k:'cena',d:'9/25',n:'最後の晩餐（取れたら）',a:15,m:'wise'},
+    {k:'mitax',d:'9/25',n:'ミラノ 市税',a:9.5,m:'cash'},
+    {k:'food',d:'毎日',n:'食費の目安 €23.5×10日',a:235,m:'wise',est:1}
   ];
   let done={}; try{done=JSON.parse(localStorage.getItem(PKEY)||'{}')}catch(e){done={}}
   function renderPlan(){
