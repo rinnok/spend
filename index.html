@@ -1,0 +1,120 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>使ったお金</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --bg:#f2f4f6;--surface:#ffffff;--ink:#1b2430;--muted:#6b7480;--line:#d9dee4;
+  --accent:#1f7a8c;--cash:#b8860b;--wise:#2f8f5b;--card:#5b6470;--danger:#b23a48;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a20;--surface:#1d242c;--ink:#e9edf1;--muted:#98a2ad;--line:#2d3640;
+  --accent:#4fb3c4;--cash:#e0b53a;--wise:#5cc98a;--card:#9aa4b0;--danger:#e2707c;}}
+:root[data-theme="dark"]{
+  --bg:#141a20;--surface:#1d242c;--ink:#e9edf1;--muted:#98a2ad;--line:#2d3640;
+  --accent:#4fb3c4;--cash:#e0b53a;--wise:#5cc98a;--card:#9aa4b0;--danger:#e2707c;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans JP",system-ui,sans-serif;font-size:16px;padding:16px;padding-block:20px 40px;max-width:520px;margin-inline:auto}
+h1{font-size:18px;margin:0 0 12px;font-weight:700;letter-spacing:.02em}
+.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.tot{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 8px;text-align:center}
+.tot .lb{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.tot .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;margin-top:2px}
+.tot.cash .v{color:var(--cash)}.tot.wise .v{color:var(--wise)}.tot.card .v{color:var(--card)}
+.all{font-size:13px;color:var(--muted);text-align:right;margin:-8px 0 14px;font-variant-numeric:tabular-nums}
+form{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
+.amt{display:flex;align-items:center;gap:8px}
+.amt span{font-size:22px;color:var(--muted)}
+input[type=number],input[type=text]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px}
+input[type=number]{font-family:"IBM Plex Mono",monospace;font-size:28px;font-weight:600;padding:8px 12px}
+.methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.methods button{font:inherit;font-weight:700;padding:14px 0;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.methods button[aria-pressed=true]{border-color:currentColor;background:var(--surface)}
+.methods .m-cash[aria-pressed=true]{color:var(--cash)}.methods .m-wise[aria-pressed=true]{color:var(--wise)}.methods .m-card[aria-pressed=true]{color:var(--card)}
+.save{font:inherit;font-weight:700;font-size:17px;padding:14px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
+.save:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+ul{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:6px}
+li{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px}
+li .tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid currentColor}
+li .tag.cash{color:var(--cash)}li .tag.wise{color:var(--wise)}li .tag.card{color:var(--card)}
+li .note{color:var(--ink);overflow-wrap:anywhere}
+li .note small{color:var(--muted);display:block;font-size:12px}
+li .amt2{font-family:"IBM Plex Mono",monospace;font-weight:600;font-variant-numeric:tabular-nums}
+li .del{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 2px}
+li .del:hover{color:var(--danger)}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:13px;color:var(--muted)}
+.foot button{font:inherit;font-size:13px;background:none;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--muted);cursor:pointer}
+.empty{color:var(--muted);text-align:center;padding:24px 0;font-size:14px}
+</style>
+
+<h1>使ったお金（€）</h1>
+<div class="totals">
+  <div class="tot cash"><div class="lb">現金</div><div class="v" id="t-cash">0</div></div>
+  <div class="tot wise"><div class="lb">Wise</div><div class="v" id="t-wise">0</div></div>
+  <div class="tot card"><div class="lb">他クレカ</div><div class="v" id="t-card">0</div></div>
+</div>
+<div class="all">合計 €<span id="t-all">0</span></div>
+
+<form id="f">
+  <div class="amt"><span>€</span><input type="number" id="amount" inputmode="decimal" step="0.01" min="0" placeholder="0.00" aria-label="金額（ユーロ）"></div>
+  <div class="methods" role="group" aria-label="支払い方法">
+    <button type="button" class="m-cash" data-m="cash" aria-pressed="true">現金</button>
+    <button type="button" class="m-wise" data-m="wise" aria-pressed="false">Wise</button>
+    <button type="button" class="m-card" data-m="card" aria-pressed="false">他クレカ</button>
+  </div>
+  <input type="text" id="note" placeholder="何に（任意）" aria-label="何に使ったか">
+  <button class="save" id="save" type="submit" disabled>記録する</button>
+</form>
+
+<ul id="list"></ul>
+<div class="foot">
+  <span id="count"></span>
+  <span><button type="button" id="copy">コピー</button> <button type="button" id="clear">全消去</button></span>
+</div>
+
+<script>
+(function(){
+  const KEY='italy2026-spend';
+  const NAMES={cash:'現金',wise:'Wise',card:'他クレカ'};
+  let items=[]; try{items=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){items=[]}
+  let method='cash';
+  const $=id=>document.getElementById(id);
+  const fmt=n=>(Math.round(n*100)/100).toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2});
+  const fmtDate=t=>{const d=new Date(t);return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+  function persist(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}}
+  function render(){
+    const t={cash:0,wise:0,card:0};
+    items.forEach(i=>t[i.m]+=i.a);
+    $('t-cash').textContent=fmt(t.cash);$('t-wise').textContent=fmt(t.wise);$('t-card').textContent=fmt(t.card);
+    $('t-all').textContent=fmt(t.cash+t.wise+t.card);
+    const ul=$('list');ul.innerHTML='';
+    if(!items.length){ul.innerHTML='<li class="empty" style="display:block">まだ記録なし。金額を入れて「記録する」</li>';}
+    [...items].reverse().forEach(i=>{
+      const li=document.createElement('li');
+      li.innerHTML='<span class="tag '+i.m+'">'+NAMES[i.m]+'</span><span class="note">'+(i.n?esc(i.n):'<span style="color:var(--muted)">—</span>')+'<small>'+fmtDate(i.t)+'</small></span><span class="amt2">€'+fmt(i.a)+'</span><button class="del" aria-label="削除" data-id="'+i.t+'">×</button>';
+      ul.appendChild(li);
+    });
+    $('count').textContent=items.length+' 件';
+  }
+  function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+  document.querySelectorAll('.methods button').forEach(b=>b.addEventListener('click',()=>{
+    method=b.dataset.m;document.querySelectorAll('.methods button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('amount').focus();
+  }));
+  $('amount').addEventListener('input',()=>{$('save').disabled=!(parseFloat($('amount').value)>0)});
+  $('f').addEventListener('submit',e=>{
+    e.preventDefault();const a=parseFloat($('amount').value);if(!(a>0))return;
+    items.push({t:Date.now(),a:a,m:method,n:$('note').value.trim()});persist();render();
+    $('amount').value='';$('note').value='';$('save').disabled=true;$('amount').focus();
+  });
+  $('list').addEventListener('click',e=>{
+    const b=e.target.closest('.del');if(!b)return;
+    items=items.filter(i=>String(i.t)!==b.dataset.id);persist();render();
+  });
+  $('clear').addEventListener('click',()=>{if(confirm('全部消しますか？'))(items=[],persist(),render())});
+  $('copy').addEventListener('click',()=>{
+    const txt=items.map(i=>fmtDate(i.t)+'\t'+NAMES[i.m]+'\t'+i.a+'\t'+(i.n||'')).join('\n');
+    navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>{$('copy').textContent='コピー済';setTimeout(()=>$('copy').textContent='コピー',1200)});
+  });
+  render();
+})();
+</script>
