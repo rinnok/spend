@@ -20,6 +20,7 @@ h1 small{font-size:12px;color:var(--muted);font-weight:400}
 .tot{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .tot .lb{font-size:11px;color:var(--muted);letter-spacing:.08em}
 .tot .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;margin-top:2px}
+.tot .yen{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:1px}
 .tot .sub{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
 .tot.cash .v{color:var(--cash)}.tot.wise .v{color:var(--wise)}.tot.card .v{color:var(--card)}
 .tot .v.neg{color:var(--danger)}
@@ -67,15 +68,14 @@ li .del:hover{color:var(--danger)}
 
 <h1>使ったお金（€）<small>€1 = ¥<span id="rate">180</span></small></h1>
 <div class="totals">
-  <div class="tot cash" id="tile-cash" role="button" tabindex="0" title="タップで持ってきた額を変更"><div class="lb">現金 残り</div><div class="v" id="r-cash">350</div><div class="sub" id="s-cash">/ 350</div></div>
-  <div class="tot wise" id="tile-wise" role="button" tabindex="0" title="タップで入金額を変更"><div class="lb">Wise 残り</div><div class="v" id="r-wise">945</div><div class="sub" id="s-wise">/ 945</div></div>
-  <div class="tot card" id="tile-card"><div class="lb">他クレカ</div><div class="v" id="r-card">0</div><div class="sub">使った額</div></div>
+  <div class="tot cash" id="tile-cash" role="button" tabindex="0" title="タップで持ってきた額を変更"><div class="lb">現金 残り</div><div class="v" id="r-cash">350</div><div class="yen" id="ry-cash">¥63,000</div><div class="sub" id="s-cash">/ 350</div></div>
+  <div class="tot wise" id="tile-wise" role="button" tabindex="0" title="タップで入金額を変更"><div class="lb">Wise 残り</div><div class="v" id="r-wise">784.1</div><div class="yen" id="ry-wise">¥141,138</div><div class="sub" id="s-wise">/ 784.1</div></div>
+  <div class="tot card" id="tile-card"><div class="lb">他クレカ</div><div class="v" id="r-card">0</div><div class="yen" id="ry-card">¥0</div><div class="sub">使った額</div></div>
 </div>
 <div class="stats">
   <div class="stat"><div class="lb">今日</div><div class="v">€<span id="t-today">0</span><span class="yen" id="y-today">¥0</span></div></div>
   <div class="stat"><div class="lb">旅行合計</div><div class="v">€<span id="t-all">0</span><span class="yen" id="y-all">¥0</span></div></div>
 </div>
-<div class="settle" id="settle" hidden><span class="lb">よしの → りんたろ（立て替え分）</span><span class="v">€<span id="t-settle">0</span><span class="yen" id="y-settle">¥0</span></span></div>
 
 <form id="f">
   <div class="amt"><span>€</span><input type="number" id="amount" inputmode="decimal" step="0.01" min="0" placeholder="0.00" aria-label="金額（ユーロ）"><span class="yen" id="amt-yen"></span></div>
@@ -84,7 +84,6 @@ li .del:hover{color:var(--danger)}
     <button type="button" class="m-wise" data-m="wise" aria-pressed="false">Wise</button>
     <button type="button" class="m-card" data-m="card" aria-pressed="false">他クレカ</button>
   </div>
-  <label class="split"><input type="checkbox" id="split">よしの分も払った（半分は立て替え）<span class="hint" id="split-hint"></span></label>
   <input type="text" id="note" placeholder="何に（任意）" aria-label="何に使ったか">
   <button class="save" id="save" type="submit" disabled>記録する</button>
 </form>
@@ -97,11 +96,11 @@ li .del:hover{color:var(--danger)}
 
 <script>
 (function(){
-  const KEY='italy2026-spend', BKEY='italy2026-budget';
+  const KEY='italy2026-spend', BKEY='italy2026-budget-v2';
   const RATE=180;
   const NAMES={cash:'現金',wise:'Wise',card:'他クレカ'};
   let items=[]; try{items=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){items=[]}
-  let budget={cash:350,wise:945}; try{Object.assign(budget,JSON.parse(localStorage.getItem(BKEY)||'{}'))}catch(e){}
+  let budget={cash:350,wise:784.1}; try{Object.assign(budget,JSON.parse(localStorage.getItem(BKEY)||'{}'))}catch(e){}
   let method='cash';
   const $=id=>document.getElementById(id);
   const fmt=n=>(Math.round(n*100)/100).toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -116,13 +115,12 @@ li .del:hover{color:var(--danger)}
     const t={cash:0,wise:0,card:0};let all=0,today=0,settle=0;const tk=dayKey(Date.now());
     items.forEach(i=>{t[i.m]+=i.a;all+=i.a;if(dayKey(i.t)===tk)today+=i.a;if(i.s)settle+=i.a/2});
     const rc=budget.cash-t.cash, rw=budget.wise-t.wise;
-    $('r-cash').textContent=fmt(rc);$('r-cash').classList.toggle('neg',rc<0);$('s-cash').textContent='/ '+fmt(budget.cash)+'・使った '+fmt(t.cash);
-    $('r-wise').textContent=fmt(rw);$('r-wise').classList.toggle('neg',rw<0);$('s-wise').textContent='/ '+fmt(budget.wise)+'・使った '+fmt(t.wise);
-    $('r-card').textContent=fmt(t.card);
+    $('r-cash').textContent=fmt(rc);$('r-cash').classList.toggle('neg',rc<0);$('ry-cash').textContent=yen(rc);$('s-cash').textContent='/ '+fmt(budget.cash)+'・使った '+fmt(t.cash);
+    $('r-wise').textContent=fmt(rw);$('r-wise').classList.toggle('neg',rw<0);$('ry-wise').textContent=yen(rw);$('s-wise').textContent='/ '+fmt(budget.wise)+'・使った '+fmt(t.wise);
+    $('r-card').textContent=fmt(t.card);$('ry-card').textContent=yen(t.card);
     $('t-today').textContent=fmt(today);$('y-today').textContent=yen(today);
     $('t-all').textContent=fmt(all);$('y-all').textContent=yen(all);
-    $('settle').hidden=settle<=0;$('t-settle').textContent=fmt(settle);$('y-settle').textContent=yen(settle);
-    const ul=$('list');ul.innerHTML='';
+        const ul=$('list');ul.innerHTML='';
     if(!items.length){ul.innerHTML='<li class="empty" style="display:block">まだ記録なし。金額を入れて「記録する」</li>';}
     let lastDay=null;
     [...items].sort((a,b)=>b.t-a.t).forEach(i=>{
@@ -143,12 +141,12 @@ li .del:hover{color:var(--danger)}
   document.querySelectorAll('.methods button').forEach(b=>b.addEventListener('click',()=>{
     method=b.dataset.m;document.querySelectorAll('.methods button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('amount').focus();
   }));
-  function onAmount(){const a=parseFloat($('amount').value);const ok=a>0;$('save').disabled=!ok;$('amt-yen').textContent=ok?'≈ '+yen(a):'';$('split-hint').textContent=ok&&$('split').checked?'立替 €'+fmt(a/2):''}
-  $('amount').addEventListener('input',onAmount);$('split').addEventListener('change',onAmount);
+  function onAmount(){const a=parseFloat($('amount').value);const ok=a>0;$('save').disabled=!ok;$('amt-yen').textContent=ok?'≈ '+yen(a):'';void 0}
+  $('amount').addEventListener('input',onAmount);
   $('f').addEventListener('submit',e=>{
     e.preventDefault();const a=parseFloat($('amount').value);if(!(a>0))return;
-    items.push({t:Date.now(),a:a,m:method,n:$('note').value.trim(),s:$('split').checked});persist();render();
-    $('amount').value='';$('note').value='';$('split').checked=false;onAmount();$('amount').focus();
+    items.push({t:Date.now(),a:a,m:method,n:$('note').value.trim()});persist();render();
+    $('amount').value='';$('note').value='';onAmount();$('amount').focus();
   });
   $('list').addEventListener('click',e=>{
     const b=e.target.closest('.del');if(!b)return;
