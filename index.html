@@ -52,6 +52,12 @@ h1 small{font-size:12px;color:var(--muted);font-weight:400}
 .plan .add input,.plan .add select{font:inherit;font-size:14px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
 .plan .add button{font:inherit;font-weight:700;border:0;border-radius:8px;background:var(--accent);color:#fff;padding:0 12px;cursor:pointer}
 .plan .tip{padding:0 12px 10px;font-size:11px;color:var(--muted)}
+.pace{display:flex;justify-content:space-between;align-items:baseline;background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.pace .lb{font-size:13px;color:var(--accent);font-weight:700}
+.pace .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:19px;color:var(--accent)}
+.pace .v .yen{font-size:12px;color:var(--muted);font-family:"IBM Plex Sans JP",sans-serif;font-weight:400;margin-left:4px}
+.pace .v.neg{color:var(--danger)}
+.pace .sub{font-size:11px;color:var(--muted);margin-left:8px}
 .settle{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--settle);border-radius:10px;padding:8px 12px;margin-bottom:14px;font-variant-numeric:tabular-nums}
 .settle .lb{font-size:13px;color:var(--settle);font-weight:700}
 .settle .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:17px;color:var(--settle)}
@@ -100,6 +106,7 @@ li .del:hover{color:var(--danger)}
   <div class="stat"><div class="lb">旅行合計</div><div class="v">€<span id="t-all">0</span><span class="yen" id="y-all">¥0</span></div></div>
 </div>
 
+<div class="pace"><span class="lb">今日あと使える<span class="sub" id="pace-sub"></span></span><span class="v" id="pace-v">€0</span></div>
 <details class="plan" id="plan">
   <summary><span class="lb">これから払う予定（1人分）</span><span class="v">€<span id="plan-total">0</span></span></summary>
   <div class="free">現金で払う予定 €<b id="plan-cash">0</b> → 現金の残りから引くと <b id="plan-free">0</b></div>
@@ -248,6 +255,14 @@ li .del:hover{color:var(--danger)}
     $('plan-total').textContent=fmt(tot);$('plan-cash').textContent=fmt(cash);
     const spent=items.filter(i=>i.m==='cash').reduce((x,i)=>x+i.a,0);
     const free=budget.cash-spent-cash;$('plan-free').textContent=(free<0?'−':'')+'€'+fmt(Math.abs(free))+(free<0?'（足りない）':'');
+    const spentW=items.filter(i=>i.m==='wise').reduce((x,i)=>x+i.a,0);
+    const END=new Date(2026,8,26);const now=new Date();const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    let days=Math.round((END-t0)/86400000)+1;if(days<1)days=1;if(days>11)days=11;
+    const todaySpent=items.filter(i=>dayKey(i.t)===dayKey(Date.now())).reduce((x,i)=>x+i.a,0);
+    const left=(budget.cash-spent)+(budget.wise-spentW)-tot;
+    const perDay=left/days;const todayLeft=perDay-todaySpent+0;
+    $('pace-sub').textContent='（残り'+days+'日・1日 €'+fmt(perDay)+'）';
+    const pv=$('pace-v');pv.classList.toggle('neg',todayLeft<0);pv.innerHTML=(todayLeft<0?'−':'')+'€'+fmt(Math.abs(todayLeft))+'<span class="yen">'+yen(Math.abs(todayLeft))+'</span>';
   }
   $('plan-list').addEventListener('change',e=>{const c=e.target.closest('input[data-k]');if(!c)return;done[c.dataset.k]=c.checked;psave();renderPlan();});
   $('plan-list').addEventListener('click',e=>{const x=e.target.closest('.x');if(!x)return;const k=x.dataset.x;if(custom.some(c=>c.k===k))custom=custom.filter(c=>c.k!==k);else hidden[k]=1;psave();renderPlan();});
