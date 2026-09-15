@@ -30,6 +30,23 @@ h1 small{font-size:12px;color:var(--muted);font-weight:400}
 .stat .lb{font-size:11px;color:var(--muted);letter-spacing:.08em}
 .stat .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:17px}
 .stat .yen{font-size:12px;color:var(--muted);margin-left:4px;font-family:"IBM Plex Sans JP",sans-serif;font-weight:400}
+
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;font-variant-numeric:tabular-nums}
+.plan summary{list-style:none;cursor:pointer;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;font-size:14px;-webkit-tap-highlight-color:transparent}
+.plan summary::-webkit-details-marker{display:none}
+.plan summary .lb{color:var(--muted)}.plan summary .lb::before{content:"▶ ";font-size:10px}
+.plan[open] summary .lb::before{content:"▼ "}
+.plan summary .v{font-family:"IBM Plex Mono",monospace;font-weight:600}
+.plan .free{padding:0 12px 8px;font-size:12px;color:var(--muted)}
+.plan .free b{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
+.plan ul{margin:0;padding:0 8px 8px;display:grid;gap:4px}
+.plan li{grid-template-columns:auto 1fr auto;padding:8px 10px;font-size:14px;border:0;background:var(--bg)}
+.plan li.done{opacity:.45;text-decoration:line-through}
+.plan li input{width:20px;height:20px;margin:0;accent-color:var(--accent)}
+.plan li .d{color:var(--muted);font-size:12px;margin-right:6px}
+.plan li .est{color:var(--muted);font-size:11px;margin-left:4px}
+.plan li .go{font-family:"IBM Plex Mono",monospace;font-weight:600;cursor:pointer;color:var(--accent)}
+.plan .tip{padding:0 12px 10px;font-size:11px;color:var(--muted)}
 .settle{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--settle);border-radius:10px;padding:8px 12px;margin-bottom:14px;font-variant-numeric:tabular-nums}
 .settle .lb{font-size:13px;color:var(--settle);font-weight:700}
 .settle .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:17px;color:var(--settle)}
@@ -77,6 +94,13 @@ li .del:hover{color:var(--danger)}
   <div class="stat"><div class="lb">今日</div><div class="v">€<span id="t-today">0</span><span class="yen" id="y-today">¥0</span></div></div>
   <div class="stat"><div class="lb">旅行合計</div><div class="v">€<span id="t-all">0</span><span class="yen" id="y-all">¥0</span></div></div>
 </div>
+
+<details class="plan" id="plan">
+  <summary><span class="lb">これから払う予定</span><span class="v">€<span id="plan-total">0</span></span></summary>
+  <div class="free">現金で払う予定 €<b id="plan-cash">0</b> → 現金の残りから引くと <b id="plan-free">0</b></div>
+  <ul id="plan-list"></ul>
+  <div class="tip">払ったらチェック。金額をタップすると入力欄に入る。「目安」は変わりうる額</div>
+</details>
 
 <form id="f">
   <div class="amt"><span>€</span><input type="number" id="amount" inputmode="decimal" step="0.01" min="0" placeholder="0.00" aria-label="金額（ユーロ）"><span class="yen" id="amt-yen"></span></div>
@@ -157,6 +181,7 @@ li .del:hover{color:var(--danger)}
       ul.appendChild(li);
     });
     $('count').textContent=items.length+' 件';
+    if(typeof renderPlan==='function'&&$('plan-list'))renderPlan();
   }
   function editBudget(k,label){
     const v=prompt(label+'（€）',budget[k]);if(v===null)return;const n=parseFloat(v);if(!(n>=0))return;budget[k]=n;persist();render();
@@ -185,6 +210,37 @@ li .del:hover{color:var(--danger)}
     const txt=[...items].sort((a,b)=>a.t-b.t).map(i=>dayKey(i.t)+' '+hm(i.t)+'\t'+NAMES[i.m]+'\t'+i.a+'\t'+(i.s?'立替½':'')+'\t'+(i.n||'')).join('\n');
     navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>{$('copy').textContent='コピー済';setTimeout(()=>$('copy').textContent='コピー',1200)});
   });
-  render();flush();
+
+  // ---- 予定支出 ----
+  const PKEY='italy2026-plan-done';
+  const PLAN=[
+    {k:'conv',d:'9/20',n:'修道院 宿泊費（到着時払い）',a:220,m:'wise'},
+    {k:'convtax',d:'9/22',n:'修道院 市税',a:16,m:'cash'},
+    {k:'brun',d:'9/21',n:'Brunelleschi Pass ×2',a:60,m:'wise'},
+    {k:'roll',d:'9/22',n:'Rolling Venice ×2',a:12,m:'cash'},
+    {k:'vap',d:'9/22',n:'ヴァポレット72h ×2（Rolling価格）',a:54,m:'wise'},
+    {k:'vetax',d:'9/22',n:'ヴェネツィア 市税',a:24,m:'cash'},
+    {k:'gond',d:'9/23',n:'ゴンドラ',a:90,m:'cash'},
+    {k:'dinner',d:'9/23',n:'記念日ディナー',a:120,m:'wise',est:1},
+    {k:'cena',d:'9/25',n:'最後の晩餐 ×2（取れたら）',a:30,m:'wise'},
+    {k:'mitax',d:'9/25',n:'ミラノ 市税',a:19,m:'cash'},
+    {k:'food',d:'毎日',n:'食費の目安 €47×10日',a:470,m:'wise',est:1}
+  ];
+  let done={}; try{done=JSON.parse(localStorage.getItem(PKEY)||'{}')}catch(e){done={}}
+  function renderPlan(){
+    let tot=0,cash=0;const ul=$('plan-list');ul.innerHTML='';
+    PLAN.forEach(p=>{
+      const ok=!!done[p.k]; if(!ok){tot+=p.a;if(p.m==='cash')cash+=p.a;}
+      const li=document.createElement('li');li.className=ok?'done':'';
+      li.innerHTML='<input type="checkbox" data-k="'+p.k+'"'+(ok?' checked':'')+' aria-label="払った"><span><span class="d">'+p.d+'</span>'+p.n+(p.est?'<span class="est">目安</span>':'')+'</span><span class="go" data-a="'+p.a+'" data-m="'+p.m+'" data-n="'+p.n.replace(/"/g,'')+'">€'+fmt(p.a)+'</span>';
+      ul.appendChild(li);
+    });
+    $('plan-total').textContent=fmt(tot);$('plan-cash').textContent=fmt(cash);
+    const spent=items.filter(i=>i.m==='cash').reduce((x,i)=>x+i.a,0);
+    const free=budget.cash-spent-cash;$('plan-free').textContent=(free<0?'−':'')+'€'+fmt(Math.abs(free))+(free<0?'（足りない）':'');
+  }
+  $('plan-list').addEventListener('change',e=>{const c=e.target.closest('input[data-k]');if(!c)return;done[c.dataset.k]=c.checked;try{localStorage.setItem(PKEY,JSON.stringify(done))}catch(x){}renderPlan();});
+  $('plan-list').addEventListener('click',e=>{const g=e.target.closest('.go');if(!g)return;$('amount').value=g.dataset.a;$('note').value=g.dataset.n;method=g.dataset.m;document.querySelectorAll('.methods button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===method));onAmount();$('plan').open=false;$('amount').focus();window.scrollTo({top:0,behavior:'smooth'});});
+  render();flush();renderPlan();
 })();
 </script>
